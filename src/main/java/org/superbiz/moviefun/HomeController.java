@@ -1,6 +1,8 @@
 package org.superbiz.moviefun;
 
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.support.TransactionOperations;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.superbiz.moviefun.albums.Album;
 import org.superbiz.moviefun.albums.AlbumFixtures;
@@ -18,13 +20,22 @@ public class HomeController {
     private final AlbumsBean albumsBean;
     private final MovieFixtures movieFixtures;
     private final AlbumFixtures albumFixtures;
+    private final TransactionOperations albumsTransactionOperations;
+    private final TransactionOperations moviesTransactionOperations;
 
-    public HomeController(MoviesBean moviesBean, AlbumsBean albumsBean, MovieFixtures movieFixtures, AlbumFixtures albumFixtures) {
+
+    public HomeController(MoviesBean moviesBean, AlbumsBean albumsBean, MovieFixtures movieFixtures,
+                          AlbumFixtures albumFixtures,
+                          TransactionOperations albumTransactionOperation, TransactionOperations moviesTransactionOperation) {
+
         this.moviesBean = moviesBean;
         this.albumsBean = albumsBean;
         this.movieFixtures = movieFixtures;
         this.albumFixtures = albumFixtures;
+        this.albumsTransactionOperations = albumTransactionOperation;
+        this.moviesTransactionOperations = moviesTransactionOperation;
     }
+
 
     @GetMapping("/")
     public String index() {
@@ -33,14 +44,18 @@ public class HomeController {
 
     @GetMapping("/setup")
     public String setup(Map<String, Object> model) {
-        for (Movie movie : movieFixtures.load()) {
-            moviesBean.addMovie(movie);
-        }
-
-        for (Album album : albumFixtures.load()) {
-            albumsBean.addAlbum(album);
-        }
-
+        moviesTransactionOperations.execute(status -> {
+            for (Movie movie : movieFixtures.load()) {
+                moviesBean.addMovie(movie);
+            }
+            return null;
+        });
+        albumsTransactionOperations.execute(status -> {
+            for (Album album : albumFixtures.load()) {
+                albumsBean.addAlbum(album);
+            }
+            return null;
+        });
         model.put("movies", moviesBean.getMovies());
         model.put("albums", albumsBean.getAlbums());
 
