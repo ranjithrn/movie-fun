@@ -14,7 +14,10 @@ public class CsvUtils {
 
     public static String readFile(String path) {
         try {
-            Scanner scanner = new Scanner(new File(path)).useDelimiter("\\A");
+            ClassLoader classLoader = CsvUtils.class.getClassLoader();
+            File file= new File(classLoader.getResource(path).getFile());
+            Scanner scanner = new Scanner(file).useDelimiter("\\A");
+            //Scanner scanner = new Scanner(new File(path)).useDelimiter("\\A");
 
             if (scanner.hasNext()) {
                 return scanner.next();
